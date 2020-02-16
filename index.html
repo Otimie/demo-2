@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title></title>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+		<script>
+			var refreshToken = (new URL(location)).searchParams.get('refreshToken');
+			function onApiLoad() {
+				gapi.load('picker', {'callback': function() {
+					fetch('https://cq2b3vejbb.execute-api.ap-southeast-2.amazonaws.com/prod/token?refreshToken=' + refreshToken).then((response) => {
+						return response.json();
+					}).then((response) => {
+						var view = new google.picker.DocsView().
+							setParent('root').
+							setIncludeFolders(true);
+						var picker = new google.picker.PickerBuilder().
+							addView(view).
+							setOAuthToken(response.access_token).
+							setCallback(function(data) {
+
+								if (data.action === 'picked') {
+
+									var location = 'https://cq2b3vejbb.execute-api.ap-southeast-2.amazonaws.com/prod/download/' + data.docs[0].id + '?refreshToken=' + refreshToken;
+
+									document.getElementById('url').value = location;
+									document.getElementById('url').style.display = 'block';
+
+									if (document.queryCommandSupported('copy')) {
+										document.getElementById('copy').style.display = 'block';
+									}
+
+									if (data.docs[0].type === 'video') {
+										var video = document.createElement('video');
+										if (video.canPlayType(data.docs[0].mimeType)) {
+											video.src = location;
+											video.style.width = '100%';
+											video.controls = true;
+											document.body.appendChild(video);
+										}
+									}
+								}
+							}).
+							build();
+						picker.setVisible(true);	
+					});
+				}});
+			};
+			
+			function copy() {
+				document.getElementById('url').select();
+				document.execCommand('copy');
+			}
+		</script>
+		<script defer type="text/javascript" src="https://apis.google.com/js/api.js?onload=onApiLoad"></script>
+	</head>
+	<body class="bg-light">
+		<main style="padding:16px">
+		        <input id="url" type="text" class="form-control" style="display:none;margin-left:auto;margin-right:auto;margin-bottom:8px" />
+		        <button id="copy" class="btn btn-primary" onclick="copy()" style="display:none;margin-left:auto;margin-right:auto">Copy to Clipboard</button>
+		</main>
+	</body>
+</html>
